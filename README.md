@@ -1,4 +1,4 @@
-arduino-jorgurtera
+Arduino jogurtera
 ==================
 
-Jorgurtera
+Arduinorekin jogurtera egiteko proiektua.
