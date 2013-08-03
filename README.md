@@ -10,8 +10,17 @@ Dokumentazioa http://www.dfrobot.com/wiki/index.php?title=I2C/TWI_LCD1602_Module
 
 <p>
 <strong>Tenperatura sensorea</strong><br>
-
+Erosi: http://dx.com/p/diy-ds18b20-stainless-steel-temperature-sensor-probe-black-151327<br>
+Dokumentazioa: http://playground.arduino.cc/Learning/OneWire<br>
 </p>
+
+<p>
+<strong>Keypad</strong>
+Erosi: http://dx.com/p/3-x-4-matrix-12-key-membrane-switch-keypad-keyboard-w-sticker-black-153995<br>
+Dokumentazioa: http://arduinotronics.blogspot.com.es/2012/11/using-keypad-for-input.html<br>
+</p>
+
+
 
 
 

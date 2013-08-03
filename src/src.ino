@@ -1,56 +1,98 @@
 #include <Wire.h> 
 #include <LiquidCrystal_I2C.h>
+#include <OneWire.h>
+#include <Keypad.h>
 
-LiquidCrystal_I2C lcd(0x38);  // Set the LCD I2C address
+// LCD
+LiquidCrystal_I2C lcd(0x27,16,2);
 
-#define BACKLIGHT_PIN     13
+// TENPERATURA
+OneWire  ds(2);
 
-// Creat a set of new characters
-const uint8_t charBitmap[][8] = {
-   { 0xc, 0x12, 0x12, 0xc, 0, 0, 0, 0 },
-   { 0x6, 0x9, 0x9, 0x6, 0, 0, 0, 0 },
-   { 0x0, 0x6, 0x9, 0x9, 0x6, 0, 0, 0x0 },
-   { 0x0, 0xc, 0x12, 0x12, 0xc, 0, 0, 0x0 },
-   { 0x0, 0x0, 0xc, 0x12, 0x12, 0xc, 0, 0x0 },
-   { 0x0, 0x0, 0x6, 0x9, 0x9, 0x6, 0, 0x0 },
-   { 0x0, 0x0, 0x0, 0x6, 0x9, 0x9, 0x6, 0x0 },
-   { 0x0, 0x0, 0x0, 0xc, 0x12, 0x12, 0xc, 0x0 }
-   
+// KEYPAD
+const byte ROWS = 4; //four rows
+const byte COLS = 3; //three columns
+char keys[ROWS][COLS] = {
+  {'1','2','3'},
+  {'4','5','6'},
+  {'7','8','9'},
+  {'*','0','#'}
 };
+byte rowPins[ROWS] = {9, 8, 7, 6}; //connect to the row pinouts of the keypad
+byte colPins[COLS] = {5, 4, 3}; //connect to the column pinouts of the keypad
+Keypad keypad = Keypad( makeKeymap(keys), rowPins, colPins, ROWS, COLS );
 
 void setup()
 {
-   int charBitmapSize = (sizeof(charBitmap ) / sizeof (charBitmap[0]));
-
-  // Switch on the backlight
-  pinMode ( BACKLIGHT_PIN, OUTPUT );
-  digitalWrite ( BACKLIGHT_PIN, HIGH );
+  lcd.init();
+  lcd.backlight();
+  Serial.begin(9600);
   
-  lcd.begin(16,2);               // initialize the lcd 
-
-   for ( int i = 0; i < charBitmapSize; i++ )
-   {
-      lcd.createChar ( i, (uint8_t *)charBitmap[i] );
-   }
-
-  lcd.home ();                   // go home
-  lcd.print("Hello, ARDUINO ");  
-  lcd.setCursor ( 0, 1 );        // go to the next line
-  lcd.print (" FORUM - fm   ");
-  delay ( 1000 );
 }
 
 void loop()
 {
-   lcd.home ();
-   // Do a little animation by writing to the same location
-   for ( int i = 0; i < 2; i++ )
-   {
-      for ( int j = 0; j < 16; j++ )
-      {
-         lcd.print (char(random(7)));
-      }
-      lcd.setCursor ( 0, 1 );
-   }
-   delay (200);
+  char key = keypad.getKey();
+
+  if (key != NO_KEY){
+    Serial.println(key);
+  }
+  
+  float celsius;
+  
+  //celsius = getTenperatura();
+  
+  lcd.clear();
+  lcd.print(celsius);
+  
+  //delay(1000);
+}
+
+float getTenperatura() {
+  
+  byte i;
+  byte present = 0;
+  byte type_s;
+  byte data[12];
+  byte addr[8];
+  float celsius;
+  
+  ds.search(addr);
+  ds.reset();
+  ds.select(addr);
+  ds.write(0x44, 1);        // start conversion, with parasite power on at the end
+  
+  delay(1000);     // maybe 750ms is enough, maybe not
+  // we might do a ds.depower() here, but the reset will take care of it.
+  
+  present = ds.reset();
+  ds.select(addr);    
+  ds.write(0xBE);         // Read Scratchpad
+
+  for ( i = 0; i < 9; i++) {           // we need 9 bytes
+    data[i] = ds.read();
+  }
+  
+  // Convert the data to actual temperature
+  // because the result is a 16 bit signed integer, it should
+  // be stored to an "int16_t" type, which is always 16 bits
+  // even when compiled on a 32 bit processor.
+  int16_t raw = (data[1] << 8) | data[0];
+  if (type_s) {
+    raw = raw << 3; // 9 bit resolution default
+    if (data[7] == 0x10) {
+      // "count remain" gives full 12 bit resolution
+      raw = (raw & 0xFFF0) + 12 - data[6];
+    }
+  } else {
+    byte cfg = (data[4] & 0x60);
+    // at lower res, the low bits are undefined, so let's zero them
+    if (cfg == 0x00) raw = raw & ~7;  // 9 bit resolution, 93.75 ms
+    else if (cfg == 0x20) raw = raw & ~3; // 10 bit res, 187.5 ms
+    else if (cfg == 0x40) raw = raw & ~1; // 11 bit res, 375 ms
+    //// default is 12 bit resolution, 750 ms conversion time
+  }
+  celsius = (float)raw / 16.0;
+  
+  return celsius;
 }
