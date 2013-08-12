@@ -16,6 +16,9 @@ int programak[10][2];
 int keycounter = 0;
 int t,d,i,p,tenp_orain,tenp_helburua, denbora_helburua;
 
+// tenperatura aldatzen den jakiteko
+int tenp_aldaketa;
+
 unsigned long denbora_orain;
 unsigned long denbora_hasiera;
 
@@ -39,10 +42,22 @@ byte rowPins[ROWS] = {9, 8, 7, 6}; //connect to the row pinouts of the keypad
 byte colPins[COLS] = {5, 4, 3}; //connect to the column pinouts of the keypad
 Keypad keypad = Keypad( makeKeymap(keys), rowPins, colPins, ROWS, COLS );
 
+// relea
+int Rele1 = 10;
+int Rele2 = 11;
+int Rele3 = 12;
+int Rele4 = 13;
+
+
 void setup()
 {
   lcd.init();
   lcd.backlight();
+  
+  pinMode(Rele1, OUTPUT);
+  pinMode(Rele2, OUTPUT); 
+  pinMode(Rele3, OUTPUT); 
+  pinMode(Rele4, OUTPUT); 
 }
 
 void loop() {
@@ -69,7 +84,7 @@ void loop() {
     
     case 8:
       // programak ekutzatzen, denbora
-      tenp_orain = 90;
+      tenp_orain = getTenperatura();
       tenp_helburua = programak[programa][0];
       
       denbora_orain = (millis() - denbora_hasiera) / 1000 / 60;
@@ -89,7 +104,7 @@ void loop() {
       
     case 7:
       // programa exekutatzen, tenperatura bila
-      tenp_orain = 40;
+      tenp_orain = getTenperatura();
       tenp_helburua = programak[programa][0];
       denbora_helburua = programak[programa][1];
       
@@ -103,10 +118,11 @@ void loop() {
       }
       
       // ez bada helburua lortzen 
-      // 5 minututan programa bukatzen da
+      // 30 minututan programa bukatzen da
       denbora_orain = (millis() - denbora_hasiera) / 1000 / 60;
       if (denbora_orain >= 1) {
          pausua = 0;
+         endBeroa();
          
          lcd.clear();
          lcd.print("Programa ezeztatu egin da.");
@@ -359,9 +375,54 @@ int lcdIdazten (int programa, int pt, int pd, int et, int ed) {
 }
 
 /**
+* Sua itzali
+*/
+int endBeroa() {
+  digitalWrite(Rele1, LOW);
+  digitalWrite(Rele2, LOW);
+  digitalWrite(Rele3, LOW);
+  digitalWrite(Rele4, LOW);
+  
+  return 0;
+}
+
+/**
 * Bero eman behar duen eta nola erabakitzen duen kodea
 */
 int setBeroa (int t_helburua, int t_orain) {
+  
+  // helburua berdindu edo gainditu bada
+  // ez da surik ematen
+  if (t_orain >= t_helburua) {
+    digitalWrite(Rele1, LOW);
+    digitalWrite(Rele2, LOW);
+    digitalWrite(Rele3, LOW);
+    digitalWrite(Rele4, LOW);
+    return 0;
+  }
+  
+  digitalWrite(Rele1, HIGH);
+  
+  // temperatura direfentzia 10º baino gehiago
+  // sua topera
+  if (t_orain + 10 < t_helburua) {
+    digitalWrite(Rele1, HIGH);
+    digitalWrite(Rele2, HIGH);
+    digitalWrite(Rele3, HIGH);
+    digitalWrite(Rele4, HIGH);
+    
+    return 0;
+    
+  // tenperatura diferentzia txikia bada
+  // minimoan jarri
+  } else if (t_orain + 5 < t_helburua) {
+    digitalWrite(Rele1, HIGH);
+    digitalWrite(Rele2, LOW);
+    digitalWrite(Rele3, LOW);
+    digitalWrite(Rele4, LOW);
+    
+    return 0;
+  }
   
   return 0;
 }
